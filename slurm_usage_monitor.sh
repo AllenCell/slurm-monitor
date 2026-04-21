@@ -19,7 +19,7 @@ DATA_DIR="${MONITOR_DIR}/data"
 LOG_FILE="${MONITOR_DIR}/monitor.log"
 # Set to "all" to auto-discover every partition, or a comma-separated list
 # (e.g. "aics_gpu,aics") to monitor specific partitions only.
-PARTITIONS="all"
+PARTITIONS="aics_gpu,aics"
 RETENTION_DAYS=90
 
 TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%S")

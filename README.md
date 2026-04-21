@@ -1,6 +1,6 @@
 # slurm-monitor
 
-Lightweight SLURM resource usage monitoring. Collects hourly snapshots of per-user resource allocations and completed job statistics via cron. Monitors all partitions by default, or can be configured for specific partitions.
+Lightweight SLURM resource usage monitoring. Collects hourly snapshots of per-user resource allocations and completed job statistics via cron. Defaults to `aics` and `aics_gpu` partitions, but can be configured to monitor all partitions or any custom set.
 
 ## What It Does
 
@@ -41,7 +41,7 @@ Lightweight SLURM resource usage monitoring. Collects hourly snapshots of per-us
    ```
 
 3. (Optional) Adjust configuration at the top of `slurm_usage_monitor.sh`:
-   - `PARTITIONS` — set to `"all"` (default) to auto-discover every partition, or a comma-separated list (e.g. `"aics_gpu,aics"`) for specific partitions
+   - `PARTITIONS` — set to a comma-separated list of partitions to monitor (default: `"aics_gpu,aics"`), or `"all"` to auto-discover every partition on the cluster
    - `RETENTION_DAYS` — how long to keep CSV files (default: 90)
 
 ## Usage

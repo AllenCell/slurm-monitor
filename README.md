@@ -61,6 +61,34 @@ python3 generate_report.py --days 7   # last 7 days
 python3 generate_report.py -o report.txt  # save to file
 ```
 
+## Stopping or Pausing
+
+**Pause** monitoring (keeps cron entry but disables it):
+
+```bash
+crontab -l | sed 's/^\([^#].*slurm_usage_monitor\)/#\1/' | crontab -
+```
+
+**Resume** a paused monitor:
+
+```bash
+crontab -l | sed 's/^#\(.*slurm_usage_monitor\)/\1/' | crontab -
+```
+
+**Stop** monitoring entirely (removes the cron entry):
+
+```bash
+crontab -l | grep -v slurm_usage_monitor | crontab -
+```
+
+**Verify** current state:
+
+```bash
+crontab -l  # look for the slurm_usage_monitor line (# prefix = paused)
+```
+
+> Note: Pausing or stopping the cron job does not delete any collected data. CSV files in `data/` are retained until they exceed the configured retention period (default: 90 days).
+
 ## Output Files
 
 | File | Location | Content |

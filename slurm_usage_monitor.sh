@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # slurm_usage_monitor.sh
-# Collects hourly SLURM resource usage per user on aics_gpu and aics partitions.
-# Run via cron on the login node (hpc.corp.alleninstitute.org).
+# Collects hourly SLURM resource usage per user across SLURM partitions.
+# Run via cron on the login node.
 #
 # Output files (daily rotation):
 #   ~/slurm_monitor/data/live_usage_YYYY-MM-DD.csv      - per-user squeue snapshot
@@ -17,7 +17,9 @@ set -euo pipefail
 MONITOR_DIR="$HOME/slurm_monitor"
 DATA_DIR="${MONITOR_DIR}/data"
 LOG_FILE="${MONITOR_DIR}/monitor.log"
-PARTITIONS="aics_gpu,aics"
+# Set to "all" to auto-discover every partition, or a comma-separated list
+# (e.g. "aics_gpu,aics") to monitor specific partitions only.
+PARTITIONS="all"
 RETENTION_DAYS=90
 
 TIMESTAMP=$(date +"%Y-%m-%dT%H:%M:%S")
@@ -28,6 +30,18 @@ COMPLETED_CSV="${DATA_DIR}/completed_jobs_${DATE_TAG}.csv"
 
 # --- Setup ---
 mkdir -p "$DATA_DIR"
+
+# --- Resolve partitions ---
+if [[ "$PARTITIONS" == "all" ]]; then
+    PARTITIONS=$(sinfo -h -o "%P" | tr -d '*' | paste -sd, -)
+    if [[ -z "$PARTITIONS" ]]; then
+        echo "[${TIMESTAMP}] ERROR: sinfo returned no partitions" >> "$LOG_FILE"
+        exit 1
+    fi
+fi
+
+SQUEUE_PARTITION_FLAG="-p $PARTITIONS"
+SACCT_PARTITION_FLAG="--partition=$PARTITIONS"
 
 log() {
     echo "[${TIMESTAMP}] $1" >> "$LOG_FILE"
@@ -41,7 +55,7 @@ if [[ ! -f "$LIVE_CSV" ]]; then
         > "$LIVE_CSV"
 fi
 
-squeue_output=$(squeue --noheader -p "$PARTITIONS" \
+squeue_output=$(squeue --noheader $SQUEUE_PARTITION_FLAG \
     --format="%u|%T|%P|%C|%m|%b" 2>/dev/null) || true
 
 live_users=0
@@ -115,7 +129,7 @@ if [[ ! -f "$COMPLETED_CSV" ]]; then
 fi
 
 sacct_output=$(sacct -a -S now-1hour \
-    --partition="$PARTITIONS" \
+    $SACCT_PARTITION_FLAG \
     --state=CD,F,TO,CA,OOM \
     --parsable2 --noheader \
     --format=User,JobID,Partition,State,AllocCPUS,AllocTRES,MaxRSS,Elapsed 2>/dev/null) || true
@@ -187,4 +201,4 @@ fi
 find "$DATA_DIR" -name "*.csv" -mtime +${RETENTION_DAYS} -delete 2>/dev/null || true
 
 # --- Section 4: Log summary ---
-log "live_users=${live_users} completed_jobs=${completed_jobs} files=${LIVE_CSV},${COMPLETED_CSV}"
+log "partitions=${PARTITIONS} live_users=${live_users} completed_jobs=${completed_jobs}"

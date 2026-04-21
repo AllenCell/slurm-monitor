@@ -1,0 +1,15 @@
+# Data files (contain real usernames)
+data/
+
+# Logs
+monitor.log
+cron.log
+
+# Generated reports
+*.txt
+!README.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/

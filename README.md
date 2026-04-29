@@ -56,10 +56,20 @@ ls data/  # should contain live_usage_*.csv and completed_jobs_*.csv
 Generate a summary report:
 
 ```bash
-python3 generate_report.py            # all available data
-python3 generate_report.py --days 7   # last 7 days
-python3 generate_report.py -o report.txt  # save to file
+python3 generate_report.py                          # all available data
+python3 generate_report.py --days 7                  # last 7 days
+python3 generate_report.py --from-date 2026-04-10 --to-date 2026-04-17  # specific date range
+python3 generate_report.py --partitions aics_gpu     # filter to specific partitions
+python3 generate_report.py -o report.txt             # save to file
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--days N` | Include the last N days of data (default: all) |
+| `--from-date YYYY-MM-DD` | Start date (inclusive). Overrides `--days`. |
+| `--to-date YYYY-MM-DD` | End date (exclusive, default: today) |
+| `--partitions p1,p2` | Comma-separated partition filter (default: all partitions in data) |
+| `-o FILE` / `--output FILE` | Write report to file instead of stdout |
 
 ## Stopping or Pausing
 

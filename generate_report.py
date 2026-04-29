@@ -29,7 +29,12 @@ import pandas as pd
 DATA_DIR = Path.home() / "slurm_monitor" / "data"
 
 
-def load_live_data(days: int | None = None) -> pd.DataFrame:
+def load_live_data(
+    days: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    partitions: list[str] | None = None,
+) -> pd.DataFrame:
     files = sorted(glob.glob(str(DATA_DIR / "live_usage_*.csv")))
     if not files:
         print("ERROR: No live_usage CSV files found in", DATA_DIR)
@@ -52,11 +57,26 @@ def load_live_data(days: int | None = None) -> pd.DataFrame:
     if days:
         cutoff = datetime.now() - timedelta(days=days)
         data = data[data["timestamp"] >= cutoff]
+    if date_from:
+        data = data[data["timestamp"] >= pd.to_datetime(date_from)]
+    if date_to:
+        data = data[data["timestamp"] <= pd.to_datetime(date_to)]
+    if partitions:
+        data = data[data["partition"].isin(partitions)]
+
+    if data.empty:
+        print("ERROR: No data after applying filters.")
+        sys.exit(1)
 
     return data
 
 
-def load_completed_data(days: int | None = None) -> pd.DataFrame:
+def load_completed_data(
+    days: int | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    partitions: list[str] | None = None,
+) -> pd.DataFrame:
     files = sorted(glob.glob(str(DATA_DIR / "completed_jobs_*.csv")))
     if not files:
         return pd.DataFrame()
@@ -75,6 +95,12 @@ def load_completed_data(days: int | None = None) -> pd.DataFrame:
     if days:
         cutoff = datetime.now() - timedelta(days=days)
         data = data[data["timestamp"] >= cutoff]
+    if date_from:
+        data = data[data["timestamp"] >= pd.to_datetime(date_from)]
+    if date_to:
+        data = data[data["timestamp"] <= pd.to_datetime(date_to)]
+    if partitions:
+        data = data[data["partition"].isin(partitions)]
     return data
 
 
@@ -396,6 +422,23 @@ def section_completed_jobs(comp_df: pd.DataFrame):
 def main():
     parser = argparse.ArgumentParser(description="SLURM Usage Report Generator")
     parser.add_argument("--days", type=int, help="Only include the last N days")
+    parser.add_argument(
+        "--from-date",
+        type=str,
+        dest="date_from",
+        help="Start date (inclusive), e.g. 2026-04-17",
+    )
+    parser.add_argument(
+        "--to-date",
+        type=str,
+        dest="date_to",
+        help="End date (inclusive), e.g. 2026-04-24",
+    )
+    parser.add_argument(
+        "--partitions",
+        type=str,
+        help="Comma-separated list of partitions to include (default: all in data)",
+    )
     parser.add_argument("--output", "-o", type=str, help="Save report to file")
     args = parser.parse_args()
 
@@ -404,19 +447,18 @@ def main():
     if args.output:
         sys.stdout = open(args.output, "w")
 
-    df = load_live_data(args.days)
-    comp_df = load_completed_data(args.days)
+    partitions = args.partitions.split(",") if args.partitions else None
+    df = load_live_data(args.days, args.date_from, args.date_to, partitions)
+    comp_df = load_completed_data(args.days, args.date_from, args.date_to, partitions)
+
+    partitions_label = ", ".join(sorted(df["partition"].unique()))
 
     print()
     print(
         "╔══════════════════════════════════════════════════════════════════════════════════════════╗"
     )
-    print(
-        "║                    SLURM RESOURCE USAGE REPORT — aics & aics_gpu                       ║"
-    )
-    print(
-        f"║                    Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S'):<40}            ║"
-    )
+    print(f"║  SLURM RESOURCE USAGE REPORT — {partitions_label:<56} ║")
+    print(f"║  Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S'):<65} ║")
     print(
         "╚══════════════════════════════════════════════════════════════════════════════════════════╝"
     )
